@@ -292,19 +292,7 @@ def plot_mse(
 
     if mark_k:
         for k in mark_k:
-            ax1.axvline(int(k), linestyle=":", linewidth=1.0, color="k", alpha=0.7)
-        k0 = int(mark_k[0])
-        ax1.text(
-            k0,
-            0.96,
-            f"ΔM snapshot\nK={k0}",
-            rotation=90,
-            va="top",
-            ha="right",
-            transform=ax1.get_xaxis_transform(),
-            fontsize=7,
-            color="k",
-        )
+            ax1.axvline(int(k), linestyle=":", linewidth=2.0, color="k", alpha=0.8)
 
     if ax2 is None:
         ax1.legend(fontsize=8, frameon=True, facecolor="white", edgecolor="black", loc="best")

@@ -1,5 +1,5 @@
 """
-Post-processing for uncoupled GPMO AlNiCo magnets on MUSE grid.
+Post-processing for AlNiCo magnets on the MUSE grid.
 Computes magnet-magnet and magnet-coil coupling corrections,
 evaluates B·n and f_B before and after coupling, and writes VTK output.
 
@@ -38,12 +38,14 @@ surface_filename = TEST_DIR / "input.muse"
 coil_path = TEST_DIR / "muse_tf_coils.focus"
 
 def _parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="AlNiCo macromagnetic post-processing (uses dipoles_final_*.npz).")
+    p = argparse.ArgumentParser(
+        description="AlNiCo macromagnetic post-processing (accepts dipoles_final_*.npz or dipoles_snapshot_K*_*.npz)."
+    )
     p.add_argument(
         "--npz-path",
         type=Path,
         default=None,
-        help="Path to `dipoles_final_*.npz` produced by `permanent_magnet_MUSE.py` (GPMO AlNiCo run).",
+        help="Path to `dipoles_final_*.npz` or `dipoles_snapshot_K*_*.npz` produced by `permanent_magnet_MUSE.py`.",
     )
     p.add_argument(
         "--outdir",
@@ -115,6 +117,10 @@ def as_field3(a2):
 # =====================================================================
 
 data = np.load(npz_path, allow_pickle=True)
+if "k_target" in data or "k_used" in data:
+    k_target = int(data["k_target"]) if "k_target" in data else None
+    k_used = int(data["k_used"]) if "k_used" in data else None
+    print(f"[INFO] Loaded dipoles snapshot metadata: K_target={k_target}, K_used={k_used}")
 
 centers_all = np.asarray(data["xyz"])
 m_unc_all = np.asarray(data["m"])              # (N,3)

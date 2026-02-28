@@ -408,9 +408,12 @@ change_Bn_unique = change_Bn_grid[:nphi_unique, :].ravel()
 
 # Print statistics on the unique half-period wedge
 print("\nΔ(B·n) summary (unique half period wedge, uncoupled minus fully coupled)")
-print(f"mean = {change_Bn_unique.mean():.12e}")
-print(f"max  = {np.abs(change_Bn_unique).max():.12e}")
-print(f"rms  = {math.sqrt(np.mean(change_Bn_unique ** 2)):.12e}")
+abs_change_Bn_unique = np.abs(change_Bn_unique)
+print(f"mean |Δ(B·n)| = {abs_change_Bn_unique.mean():.12e}")
+print(f"max  |Δ(B·n)| = {abs_change_Bn_unique.max():.12e}")
+print(f"rms   Δ(B·n)  = {math.sqrt(np.mean(change_Bn_unique ** 2)):.12e}")
+print(f"mean  Δ(B·n)  = {change_Bn_unique.mean():.12e}")
+print(f"mean |Δ(B·n)| / 0.15 T = {abs_change_Bn_unique.mean() / 0.15:.12e}")
 
 # ============================================================================
 # f_B objective function evaluation
@@ -500,9 +503,11 @@ def summarize_error(name, arr):
         arr: Array of B·n error values
     """
     print(f"\n{name} total B·n error (unique half period wedge)")
-    print(f"mean = {arr.mean():.12e}")
-    print(f"max  = {np.abs(arr).max():.12e}")
-    print(f"rms  = {math.sqrt(np.mean(arr ** 2)):.12e}")
+    abs_arr = np.abs(arr)
+    print(f"mean |B·n| = {abs_arr.mean():.12e}")
+    print(f"max  |B·n| = {abs_arr.max():.12e}")
+    print(f"rms   B·n  = {math.sqrt(np.mean(arr ** 2)):.12e}")
+    print(f"mean  B·n  = {arr.mean():.12e}")
 
 
 # Print error statistics for each coupling case

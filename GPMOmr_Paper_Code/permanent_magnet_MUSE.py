@@ -205,7 +205,7 @@ def _parse_args() -> argparse.Namespace:
         default=[],
         help=(
             "Optionally save additional dipole-moment snapshots at the requested greedy iteration K. "
-            "May be provided multiple times, e.g. `--snapshot-k 18000 --snapshot-k 25000`."
+            "May be provided multiple times, e.g. `--snapshot-k 10000 --snapshot-k 25000`."
         ),
     )
     p.add_argument("--list-presets", action="store_true", help="Print available presets and exit.")
@@ -746,7 +746,27 @@ if snapshot_targets:
             k_used=np.int64(k_used),
         )
         print(f"[SIMSOPT] Saved {snap_path}")
-        snapshot_entries.append({"k_target": int(k_target), "k_used": int(k_used), "dipoles_npz": snap_name})
+
+        # Also write a VTK snapshot so glyph plots can be taken at a fixed K.
+        snap_vtu_stem = f"dipoles_snapshot_K{k_target}{full_suffix}_{algorithm}"
+        b_snap = DipoleField(
+            pm_opt.dipole_grid_xyz,
+            m_history[:, :, idx_used],
+            nfp=s.nfp,
+            coordinate_flag=pm_opt.coordinate_flag,
+            m_maxima=pm_opt.m_maxima,
+        )
+        b_snap._toVTK(out_dir / snap_vtu_stem, dx, dy, dz)
+        print(f"[SIMSOPT] Wrote {snap_vtu_stem}.vtu")
+
+        snapshot_entries.append(
+            {
+                "k_target": int(k_target),
+                "k_used": int(k_used),
+                "dipoles_npz": snap_name,
+                "dipoles_vtu": f"{snap_vtu_stem}.vtu",
+            }
+        )
 
 yaml = YAML(typ="safe")
 yaml.default_flow_style = False

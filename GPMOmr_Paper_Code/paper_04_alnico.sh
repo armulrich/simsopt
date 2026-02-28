@@ -74,7 +74,7 @@ NADJ=12
 NMAX=40000
 KMM=50
 HISTORY_EVERY=10
-SNAP_K=18000
+SNAP_K=10000
 
 BASE="K${K}_nphi${N}_ntheta${N}_ds${DS}_mat${MAT}_bt${BT}_Nadj${NADJ}_nmax${NMAX}"
 RID_GPMO="${BASE}_GPMO"
@@ -100,7 +100,9 @@ echo "[$(ts)] Plot: Histogram_DeltaM_log_GPMO_vs_GPMOmr_K${SNAP_K}.png"
   --outdir "$OUTDIR" --mode deltam --deltam-k "$SNAP_K" --compare "$RID_GPMO" "$RID_GPMOMR"
 
 # Post-processing (integrated here since it relies on the AlNiCo run outputs).
-NPZ_NAME="dipoles_final_matAlNiCo_bt200_Nadj12_nmax40000_GPMO.npz"
+# Use the K=SNAP_K snapshot so all derived quantities (Δ(B·n), f_B) match the
+# paper snapshot choice.
+NPZ_NAME="dipoles_snapshot_K${SNAP_K}_mat${MAT}_bt${BT}_Nadj${NADJ}_nmax${NMAX}_GPMO.npz"
 POSTDIR="$OUTDIR/postprocess"
 mkdir -p "$POSTDIR"
 run_if_missing_or_stale "$POSTDIR/surface_Bn_delta_AlNiCo.vts" \
