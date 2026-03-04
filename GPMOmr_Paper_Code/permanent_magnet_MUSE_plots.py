@@ -425,7 +425,7 @@ def plot_delta_m(
         title_tag = f"{alg1} vs {alg2} @ K={int(deltam_k)}"
         if k_used1 is not None or k_used2 is not None:
             print(
-                f"[INFO] ΔM snapshot K_target={int(deltam_k)}: "
+                f"[INFO] Δm snapshot K_target={int(deltam_k)}: "
                 f"{alg1} uses K={k_used1 if k_used1 is not None else 'unknown'}, "
                 f"{alg2} uses K={k_used2 if k_used2 is not None else 'unknown'}."
             )
@@ -488,7 +488,7 @@ def plot_delta_m(
         pct_union = 100.0 * counts / max(N_union, 1)
         pct_total = 100.0 * counts / max(N_total, 1)
 
-        print("\nΔM bucket breakdown:")
+        print("\nΔm bucket breakdown:")
         print(f"  estimated M_rem: {Mrem_est:.6e} [A·m^2]")
         print(f"  total sites: {N_total}")
         print(f"  both-zero sites: {n_both_zero} ({100.0*n_both_zero/max(N_total,1):.2f}%)")
@@ -501,9 +501,9 @@ def plot_delta_m(
 
     plt.figure()
     plt.hist(diffs, bins=200, alpha=0.7)
-    plt.xlabel(r"$|\Delta M| = \|M_i - M'_i\|_2$ [A·m$^2$]")
+    plt.xlabel(r"$|\Delta m| = \|m_i - m'_i\|_2$ [A·m$^2$]")
     plt.ylabel("Number of magnets")
-    plt.title(f"Histogram of |ΔM| (linear) — {title_tag}")
+    plt.title(f"Histogram of |Δm| (linear) — {title_tag}")
     plt.grid(True)
     snap_suffix = f"_K{int(deltam_k)}" if deltam_k is not None else ""
     fname_lin = save_dir / f"Histogram_DeltaM_linear_{tag}{snap_suffix}.png"
@@ -513,9 +513,9 @@ def plot_delta_m(
 
     plt.figure()
     plt.hist(diffs, bins=200, alpha=0.7)
-    plt.xlabel(r"$|\Delta M| = \|M_i - M'_i\|_2$ [A·m$^2$]")
+    plt.xlabel(r"$|\Delta m| = \|m_i - m'_i\|_2$ [A·m$^2$]")
     plt.ylabel("Number of magnets (log scale)")
-    plt.title(f"Histogram of |ΔM| (log) — {title_tag}")
+    plt.title(f"Histogram of |Δm| (log) — {title_tag}")
     plt.yscale("log")
     plt.grid(True)
     fname_log = save_dir / f"Histogram_DeltaM_log_{tag}{snap_suffix}.png"
