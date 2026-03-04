@@ -772,6 +772,26 @@ class Testing(unittest.TestCase):
         with ScratchDir("."):
             Bfield._toVTK('test')
 
+    def test_DipoleField_toVTK_geometry_and_boxes(self):
+        Ndipoles = 2
+        m = np.ravel(np.outer(np.ones(Ndipoles), np.array([0.5, 0.5, 0.5])))
+        m_loc = np.array([[0.1, -0.1, 1.0], [0.2, 0.0, 1.0]])
+        Bfield = DipoleField(m_loc, m, stellsym=False, coordinate_flag='cartesian')
+
+        with ScratchDir("."):
+            Bfield._toVTK('test_geom', dx=0.01, dy=0.02, dz=0.03)
+            self.assertTrue(Path("test_geom.vtu").exists())
+            self.assertTrue(Path("test_geom_geometry.vtu").exists())
+            self.assertTrue(Path("test_geom_geometry_unique.vtu").exists())
+
+            Bfield._toVTK_boxes_per_tile('test_boxes', dx=0.01, dy=0.02, dz=0.03)
+            self.assertTrue(Path("test_boxes.vtu").exists())
+            self.assertTrue(Path("test_boxes_geometry.vtu").exists())
+            self.assertTrue(Path("test_boxes_geometry_unique.vtu").exists())
+
+            with self.assertRaises(TypeError):
+                Bfield._toVTK('test_bad', dx=0.01)
+
     def test_DipoleField_multiple_points_multiple_dipoles(self):
         Ndipoles = 101
         m = np.ravel(np.outer(np.ones(Ndipoles), np.array([0.5, 0.5, 0.5])))

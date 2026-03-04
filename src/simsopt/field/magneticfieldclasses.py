@@ -722,49 +722,68 @@ class DipoleField(MagneticField):
         self.m_vec = contig(m_vec)
         self.m_maxima = contig(m_max)
 
-    def _toVTK(self, vtkname):
+    def _toVTK(self, vtkname, dx=None, dy=None, dz=None):
         """
-            Write dipole data into a VTK file (acknowledgements to Caoxiang's CoilPy code).
+        Write dipole data into VTK files (acknowledgements to Caoxiang's CoilPy code).
+
+        This method is backwards-compatible with the historical signature
+        ``_toVTK(vtkname)`` (points-only output). If ``dx, dy, dz`` are provided,
+        additional voxel geometry outputs are written for visualization of the
+        magnet bricks.
 
         Args:
-            vtkname (str): VTK filename, will be appended with .vts or .vtu.
+            vtkname (str): VTK filename stem (extensions are added by pyevtk).
+            dx, dy, dz (float): Optional brick dimensions for voxel outputs.
         """
+        if (dx is None) and (dy is None) and (dz is None):
+            # points-only output (legacy behavior)
+            # get the coordinates
+            ox = np.ascontiguousarray(self.dipole_grid[:, 0])
+            oy = np.ascontiguousarray(self.dipole_grid[:, 1])
+            oz = np.ascontiguousarray(self.dipole_grid[:, 2])
+            ophi = np.arctan2(oy, ox)
+            otheta = np.arctan2(oz, np.sqrt(ox ** 2 + oy ** 2) - self.R0)
+            # define the m vectors and the normalized m vectors
+            # in Cartesian, cylindrical, and simple toroidal coordinates.
+            mx = np.ascontiguousarray(self.m_vec[:, 0])
+            my = np.ascontiguousarray(self.m_vec[:, 1])
+            mz = np.ascontiguousarray(self.m_vec[:, 2])
+            mx_normalized = np.ascontiguousarray(mx / self.m_maxima)
+            my_normalized = np.ascontiguousarray(my / self.m_maxima)
+            mz_normalized = np.ascontiguousarray(mz / self.m_maxima)
+            mr = np.ascontiguousarray(mx * np.cos(ophi) + my * np.sin(ophi))
+            mrminor = np.ascontiguousarray(
+                mx * np.cos(ophi) * np.cos(otheta)
+                + my * np.sin(ophi) * np.cos(otheta)
+                + np.sin(otheta) * mz
+            )
+            mphi = np.ascontiguousarray(-mx * np.sin(ophi) + my * np.cos(ophi))
+            mtheta = np.ascontiguousarray(
+                -mx * np.cos(ophi) * np.sin(otheta)
+                - my * np.sin(ophi) * np.sin(otheta)
+                + np.cos(otheta) * mz
+            )
+            mr_normalized = np.ascontiguousarray(mr / self.m_maxima)
+            mrminor_normalized = np.ascontiguousarray(mrminor / self.m_maxima)
+            mphi_normalized = np.ascontiguousarray(mphi / self.m_maxima)
+            mtheta_normalized = np.ascontiguousarray(mtheta / self.m_maxima)
 
-        # get the coordinates
-        ox = np.ascontiguousarray(self.dipole_grid[:, 0])
-        oy = np.ascontiguousarray(self.dipole_grid[:, 1])
-        oz = np.ascontiguousarray(self.dipole_grid[:, 2])
-        ophi = np.arctan2(oy, ox)
-        otheta = np.arctan2(oz, np.sqrt(ox ** 2 + oy ** 2) - self.R0)
+            # Save all the data to a vtk file which can be visualized nicely with ParaView
+            data = {
+                "m": (mx, my, mz),
+                "m_normalized": (mx_normalized, my_normalized, mz_normalized),
+                "m_rphiz": (mr, mphi, mz),
+                "m_rphiz_normalized": (mr_normalized, mphi_normalized, mz_normalized),
+                "m_rphitheta": (mrminor, mphi, mtheta),
+                "m_rphitheta_normalized": (mrminor_normalized, mphi_normalized, mtheta_normalized),
+            }
+            from pyevtk.hl import pointsToVTK
 
-        # define the m vectors and the normalized m vectors
-        # in Cartesian, cylindrical, and simple toroidal coordinates.
-        mx = np.ascontiguousarray(self.m_vec[:, 0])
-        my = np.ascontiguousarray(self.m_vec[:, 1])
-        mz = np.ascontiguousarray(self.m_vec[:, 2])
-        mx_normalized = np.ascontiguousarray(mx / self.m_maxima)
-        my_normalized = np.ascontiguousarray(my / self.m_maxima)
-        mz_normalized = np.ascontiguousarray(mz / self.m_maxima)
-        mr = np.ascontiguousarray(mx * np.cos(ophi) + my * np.sin(ophi))
-        mrminor = np.ascontiguousarray(mx * np.cos(ophi) * np.cos(otheta) + my * np.sin(ophi) * np.cos(otheta) + np.sin(otheta) * mz)
-        mphi = np.ascontiguousarray(-mx * np.sin(ophi) + my * np.cos(ophi))
-        mtheta = np.ascontiguousarray(-mx * np.cos(ophi) * np.sin(otheta) - my * np.sin(ophi) * np.sin(otheta) + np.cos(otheta) * mz)
-        mr_normalized = np.ascontiguousarray(mr / self.m_maxima)
-        mrminor_normalized = np.ascontiguousarray(mrminor / self.m_maxima)
-        mphi_normalized = np.ascontiguousarray(mphi / self.m_maxima)
-        mtheta_normalized = np.ascontiguousarray(mtheta / self.m_maxima)
+            pointsToVTK(str(vtkname), ox, oy, oz, data=data)
+            return
 
-        # Save all the data to a vtk file which can be visualized nicely with ParaView
-        data = {"m": (mx, my, mz), "m_normalized": (mx_normalized, my_normalized, mz_normalized), "m_rphiz": (mr, mphi, mz), "m_rphiz_normalized": (mr_normalized, mphi_normalized, mz_normalized), "m_rphitheta": (mrminor, mphi, mtheta), "m_rphitheta_normalized": (mrminor_normalized, mphi_normalized, mtheta_normalized)}
-        from pyevtk.hl import pointsToVTK
-        pointsToVTK(str(vtkname), ox, oy, oz, data=data)
-
-    def _toVTK(self, vtkname, dx, dy, dz):
-        """
-            Write dipole data into a VTK file (acknowledgements to Caoxiang's CoilPy code).
-        Args:
-            vtkname (str): VTK filename, will be appended with .vts or .vtu.
-        """
+        if (dx is None) or (dy is None) or (dz is None):
+            raise TypeError("Either pass no brick dimensions, or pass dx, dy, dz together.")
         # get the coordinates
         ox = np.ascontiguousarray(self.dipole_grid[:, 0])
         oy = np.ascontiguousarray(self.dipole_grid[:, 1])

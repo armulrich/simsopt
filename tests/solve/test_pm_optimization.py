@@ -6,6 +6,7 @@ from monty.tempfile import ScratchDir
 
 import simsoptpp as sopp
 from simsopt.solve.permanent_magnet_optimization import prox_l0, prox_l1
+from simsopt.solve.permanent_magnet_optimization import _connectivity_matrix_py, GPMOmr
 from simsopt.solve.permanent_magnet_optimization import setup_initial_condition
 from simsopt.solve import relax_and_split, GPMO
 from simsopt.util import *
@@ -460,6 +461,143 @@ class Testing(unittest.TestCase):
             # just a quick check to veify if at least one magnet is placed (unless the residual was already aprox. 0)
             if errors_ref[0] > 1e-12:
                 self.assertGreater(np.count_nonzero(np.linalg.norm(m_ref.reshape(-1, 3), axis=1)), 0)
+
+    def test_connectivity_matrix_py(self):
+        xyz = np.array(
+            [
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [2.0, 0.0, 0.0],
+            ],
+            dtype=np.float64,
+        )
+        nbr = _connectivity_matrix_py(xyz, Nadjacent=2)
+        self.assertEqual(nbr.shape, (3, 2))
+        # Includes self as the closest neighbor
+        self.assertEqual(int(nbr[0, 0]), 0)
+        self.assertEqual(int(nbr[1, 0]), 1)
+        self.assertEqual(int(nbr[2, 0]), 2)
+
+    def test_gpmo_k_history_fallback(self):
+        """
+        Exercise the `k_history` fallback logic in `GPMO(...)` for algorithms
+        that do not return an explicit k_history array.
+        """
+        TEST_DIR = (Path(__file__).parent / ".." / ".." / "tests" / "test_files").resolve()
+        with ScratchDir("."):
+            _, pm_opt = self._make_pm_opt_tiny(
+                TEST_DIR, nphi=2, ntheta=2, dr=0.08, coff=0.08, poff=0.04
+            )
+            kwargs = initialize_default_kwargs("GPMO")
+            kwargs.update(
+                {
+                    "nhistory": 4,
+                    "K": 12,
+                    "Nadjacent": 1,
+                    "dipole_grid_xyz": np.ascontiguousarray(pm_opt.dipole_grid_xyz),
+                    "backtracking": 0,
+                    "max_nMagnets": 50,
+                    "thresh_angle": np.pi,
+                    "verbose": False,
+                }
+            )
+            errors, _, _ = GPMO(pm_opt, algorithm="GPMO", **kwargs)
+            self.assertTrue(hasattr(pm_opt, "k_history"))
+            self.assertEqual(len(pm_opt.k_history), len(errors))
+            self.assertEqual(int(pm_opt.k_history[0]), 0)
+            self.assertLessEqual(int(pm_opt.k_history[-1]), int(kwargs["K"]))
+            self.assertTrue(np.all(np.diff(pm_opt.k_history) >= 0))
+            self.assertTrue(hasattr(pm_opt, "record_every"))
+            self.assertGreater(int(pm_opt.record_every), 0)
+
+    def test_gpmomr_use_coils_smoke_synthetic(self):
+        """
+        Minimal synthetic run of the GPMOmr routine with use_coils=True.
+
+        This avoids constructing a full PermanentMagnetGrid, while still
+        exercising the coil-loading and coil-field code paths inside GPMOmr.
+        """
+        TEST_DIR = (Path(__file__).parent / ".." / ".." / "tests" / "test_files").resolve()
+        coil_path = str(TEST_DIR / "muse_tf_coils.focus")
+
+        N = 4
+        ngrid = 6
+        rng = np.random.default_rng(0)
+
+        A_obj = rng.standard_normal((3 * N, ngrid))
+        b_obj = rng.standard_normal((ngrid,))
+        normal_norms = np.ones((ngrid,), dtype=np.float64)
+
+        # 3 polarization vectors per site: {x,y,z}
+        pol_vectors = np.zeros((N, 3, 3), dtype=np.float64)
+        pol_vectors[:, 0, 0] = 1.0
+        pol_vectors[:, 1, 1] = 1.0
+        pol_vectors[:, 2, 2] = 1.0
+
+        x_init = np.zeros((N, 3), dtype=np.float64)
+        dipole_grid_xyz = np.array(
+            [
+                [0.5, 0.0, 0.0],
+                [0.5, 0.1, 0.0],
+                [0.5, 0.0, 0.1],
+                [0.6, 0.0, 0.0],
+            ],
+            dtype=np.float64,
+        )
+
+        mmax = np.full((3 * N,), 0.1, dtype=np.float64)
+
+        with self.assertRaises(ValueError):
+            GPMOmr(
+                A_obj=A_obj,
+                b_obj=b_obj,
+                mmax=mmax,
+                normal_norms=normal_norms,
+                pol_vectors=pol_vectors,
+                K=2,
+                verbose=False,
+                nhistory=1,
+                backtracking=0,
+                dipole_grid_xyz=dipole_grid_xyz,
+                Nadjacent=1,
+                thresh_angle=np.pi,
+                max_nMagnets=1,
+                x_init=x_init,
+                use_coils=True,
+                coil_path=None,
+                mm_refine_every=1,
+            )
+
+        obj_hist, bn_hist, m_hist, num_nonzeros, x, k_hist = GPMOmr(
+            A_obj=A_obj,
+            b_obj=b_obj,
+            mmax=mmax,
+            normal_norms=normal_norms,
+            pol_vectors=pol_vectors,
+            K=3,
+            verbose=False,
+            nhistory=2,
+            backtracking=0,
+            dipole_grid_xyz=dipole_grid_xyz,
+            Nadjacent=1,
+            thresh_angle=np.pi,
+            max_nMagnets=1,
+            x_init=x_init,
+            cube_dim=0.01,
+            mu_ea=1.2,
+            mu_oa=1.2,
+            use_coils=True,
+            coil_path=coil_path,
+            mm_refine_every=1,
+            current_scale=1.0,
+        )
+        self.assertEqual(m_hist.shape[0], N)
+        self.assertEqual(m_hist.shape[1], 3)
+        self.assertGreaterEqual(m_hist.shape[2], 1)
+        self.assertTrue(np.all(np.isfinite(obj_hist)))
+        self.assertTrue(np.all(np.isfinite(bn_hist)))
+        self.assertTrue(np.all(np.isfinite(x)))
+        self.assertEqual(len(k_hist), len(obj_hist))
 
 
 
