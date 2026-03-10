@@ -1392,7 +1392,12 @@ def GPMOmr(
         print(f"Iteration {k}: Time in N block assembly: {t1_n_construction - t0_n_construction} seconds")
 
         # Perform the magtense coupling direct solve
-        params = SolverParams(use_coils=use_coils, H_a_override=Hcoil_all[active_idx])
+        params = SolverParams(
+            use_coils=use_coils,
+            krylov_tol=1e-6,
+            krylov_it=20,
+            H_a_override=Hcoil_all[active_idx],
+        )
         mac, A_sub = mac.direct_solve(
             N_new_rows=N_new_rows,
             N_new_cols=N_new_cols,
