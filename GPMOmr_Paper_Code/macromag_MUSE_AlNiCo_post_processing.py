@@ -6,7 +6,7 @@ evaluates B·n and f_B before and after coupling, and writes VTK output.
 Adds B·n summary logs (mean/max/rms) for magnet-only and total (coils+magnets),
 and writes normalized Δ(B·n)/|B| style fields to VTK for plotting.
 
-Author: Armin Ulrich
+Authors: Armin Ulrich and Alan Kaptanoglu
 """
 
 import argparse
