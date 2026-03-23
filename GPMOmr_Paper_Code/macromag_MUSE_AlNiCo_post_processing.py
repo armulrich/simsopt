@@ -364,7 +364,7 @@ b_dip_unc_active = DipoleField(
     m_maxima=m_maxima,
 )
 
-b_dip_unc_active._toVTK_boxes_per_tile(out_dir / "dipoles_uncoupled_AlNiCo",
+b_dip_unc_active._toVTK(out_dir / "dipoles_uncoupled_AlNiCo",
                                       dx_tile, dy_tile, dz_tile)
 
 # For boxes, use active-only objects so dimensions match active list
@@ -385,9 +385,9 @@ b_dip_mc_active = DipoleField(
     m_maxima=m_maxima,
 )
 
-b_dip_mm_active._toVTK_boxes_per_tile(out_dir / "dipoles_mm_AlNiCo",
+b_dip_mm_active._toVTK(out_dir / "dipoles_mm_AlNiCo",
                                      dx_tile, dy_tile, dz_tile)
-b_dip_mc_active._toVTK_boxes_per_tile(out_dir / "dipoles_mc_AlNiCo",
+b_dip_mc_active._toVTK(out_dir / "dipoles_mc_AlNiCo",
                                      dx_tile, dy_tile, dz_tile)
 
 print("[SIMSOPT] Wrote dipole box VTKs in", out_dir)
